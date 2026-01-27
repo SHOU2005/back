@@ -2,10 +2,12 @@
 PDF Processing Service - Extracts transactions from bank statement PDFs
 Uses multiple parsing strategies for maximum accuracy
 """
-
 import pdfplumber
 import PyPDF2
 import re
+import pytesseract
+from PIL import Image
+from pdf2image import convert_from_bytes
 from typing import List, Dict, Any
 from io import BytesIO
 import logging
@@ -79,6 +81,26 @@ class PDFProcessor:
             'services', 'srv', 'solutions', 'soln', 'pvt', 'ltd', 'limited',
             'corp', 'corporation', 'inc', 'company', 'co', 'group', 'associates',
         ]
+    def _extract_with_ocr(self, pdf_bytes: bytes) -> List[Dict[str, Any]]:
+    """Extract transactions using OCR for scanned PDFs"""
+    transactions = []
+
+    try:
+        images = convert_from_bytes(pdf_bytes, dpi=300)
+
+        for idx, image in enumerate(images):
+            text = pytesseract.image_to_string(image, lang="eng")
+
+            if text and len(text.strip()) > 50:
+                logger.info(f"OCR page {idx+1} text detected")
+                page_txns = self._parse_text_transactions(text)
+                transactions.extend(page_txns)
+
+    except Exception as e:
+        logger.error(f"OCR extraction failed: {str(e)}")
+
+    return transactions
+
     
     def extract_transactions(self, pdf_bytes: bytes) -> List[Dict[str, Any]]:
         """
@@ -92,9 +114,13 @@ class PDFProcessor:
             transactions = self._extract_with_pdfplumber(pdf_bytes)
             
             # Strategy 2: PyPDF2 text extraction (fallback)
-            if not transactions or len(transactions) == 0:
+            if not transactions:
                 logger.info("Trying PyPDF2 extraction...")
                 transactions = self._extract_with_pypdf2(pdf_bytes)
+            # Strategy 3: OCR fallback for scanned PDFs
+            if not transactions:
+                logger.info("Trying OCR extraction...")
+                transactions = self._extract_with_ocr(pdf_bytes)
             
             # Validate and clean transactions
             transactions = self._validate_and_clean(transactions)
