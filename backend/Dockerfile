@@ -4,8 +4,7 @@ WORKDIR /app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    tesseract-ocr \
-    poppler-utils \
+   
     gcc \
     g++ \
     curl \
