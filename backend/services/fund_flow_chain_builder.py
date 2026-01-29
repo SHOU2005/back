@@ -402,6 +402,7 @@ class FundFlowChainBuilder:
         total_cross_file = sum(c.cross_pdf_links for c in self.chains)
         
         sorted_chains = sorted(self.chains, key=lambda c: c.total_amount, reverse=True)
+        # Return all chains - frontend handles pagination (shows 10 at a time)
         top_chains = [
             {
                 'chain_id': c.chain_id,
@@ -409,7 +410,7 @@ class FundFlowChainBuilder:
                 'total_amount': round(c.total_amount, 2),
                 'confidence': round(c.confidence, 2)
             }
-            for c in sorted_chains[:10]
+            for c in sorted_chains
         ]
         
         return {
