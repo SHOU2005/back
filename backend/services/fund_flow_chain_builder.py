@@ -444,4 +444,3 @@ class FundFlowChainBuilder:
         self.chains.clear()
         self.party_transactions.clear()
         self.source_files.clear()
-
